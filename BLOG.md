@@ -108,3 +108,75 @@ intuition was confidently wrong, and a dumb exhaustive search was right. That is
 lesson in a nutshell — and I hit it before the project's actual agents even existed.
 
 **Artifact:** `pytest tests/` → 14 passed. Committed as Slice 0.
+
+### Engine walkthrough (`engine.py`, line by line)
+
+Reading my own engine back, section by section, to make sure the foundation is actually
+understood and not just passing tests. The design *why* matters more than the syntax —
+especially the parts that look like over-engineering on a toy but are really early
+rehearsals of the iron law.
+
+**Header + constants (`engine.py:1`, `:18`, `:22`).** Three named constants — `ROWS=6`,
+`COLS=7`, `CONNECT=4` — instead of magic numbers, so the whole engine retargets to another
+board size by editing three lines, and every loop bound reads as what it means.
+`_DIRECTIONS = ((0,1),(1,0),(1,1),(1,-1))` is `(row-delta, col-delta)` steps: right, up,
+up-right, up-left. Only *four* directions, not eight, because a line and its reverse are
+the same line — I walk both ways from a cell, so I never need the negatives. This one tuple
+is the single source of truth for "what a line looks like," shared by both win-checkers.
+
+**The class + `__slots__` (`engine.py:25`, `:28`).** `GameState` holds the board, whose turn
+it is, the winner (0 = nobody yet), and the last move. `__slots__` is the first deliberate
+systems choice: normally every Python object carries a `__dict__` hash map so you can attach
+arbitrary attributes; `__slots__` declares the only four fields and drops that dict — less
+memory, faster attribute access. Pointless for one object, decisive for the hundreds of
+thousands of `GameState`s that MCTS will spawn per move in Slice 1. That's the iron law
+arriving early: when the arithmetic is trivial, *overhead* dominates, and overhead is the
+thing you optimize.
+
+**`clone()` (`engine.py:38`).** Makes an independent copy — `self.board.copy()` plus the
+scalars. This is the method search lives on: MCTS explores imagined futures by cloning the
+state, playing into the copy, and discarding it, never touching the real game. `board.copy()`
+is also the single most-run expensive line in the file. Foreshadow for Slice 2: the bitboard
+makes a board one 64-bit integer, so "clone" becomes copying *one number* instead of a
+42-element array — a concrete piece of the speedup I'll measure.
+
+**`legal_moves()` + `is_full()` (`engine.py:44`).** Both ride one trick: a column is full iff
+its *top* cell (`board[ROWS-1, c]`) is occupied. So legal moves keep every column whose top
+is still empty, and `is_full` asks whether the top row has any empty cell left, using NumPy
+vectorization (`(board[ROWS-1] == 0).any()`). No need to scan whole columns.
+
+**`play()` — the heart (`engine.py:51`).** Four steps: (1) *guards* reject out-of-range and
+full columns with a loud `ValueError` — the deterministic-failure luxury of Software 1.0;
+(2) *drop* finds the landing row via gravity and writes the piece; (3) *win check* runs only
+around the cell just placed; (4) *switch player* with `3 - current_player`, a branchless
+toggle (3−1=2, 3−2=1, no `if`). It mutates and returns `self`, so moves chain.
+
+**`is_terminal()` + `result()` (`engine.py:72`).** `result(player)` is *perspective-relative*:
++1 if that player won, −1 if they lost, 0 for a draw. One sign convention keeps search code
+honest — every agent reasons "good *for me*."
+
+**`_drop_row()` (`engine.py:83`).** Returns the lowest empty row in a column. That's gravity.
+The trailing unreachable `raise` is a defensive assertion so the function is correct even if
+called directly, bypassing `play`'s guard.
+
+**`_completes_win()` + `_run()` — the fast win check (`engine.py:91`).** The one real insight
+in the file: placing a piece can only create a four-in-a-row that *passes through that piece*.
+So don't scan the board — only inspect lines through `(r,c)`. For each direction, start
+`count = 1` (the new piece), then `_run` forward and backward counting same-colored pieces;
+≥ 4 means a win. At most ~3 steps each way, versus 42 cells for a full scan — a locality
+optimization that pays off precisely because it runs inside a deep search.
+
+**`__str__()` (`engine.py:110`).** Prints with `reversed(range(ROWS))` so row 5 is on top and
+row 0 on the bottom, matching the physical board (gravity falls down). Pure debugging
+affordance, but I'll be glad it's there in Slice 1.
+
+**`has_won()` + `_is_line()` — the reference checker (`engine.py:118`).** The deliberately
+dumb one: scan every cell, and from each, check four-in-a-row in any direction. Slower but
+obviously correct. Its whole job is to *validate* the clever incremental check in the tests.
+This is the "trust an optimization by checking it against a simple reference" pattern — and
+the exact template for how I'll validate the Slice 2 bitboard against this array engine.
+
+**Three things to carry forward:** `__slots__` and `clone()` exist because search allocates
+state at massive volume (iron-law overhead); the incremental win check is a locality
+optimization; and the two-checker pattern is *how you earn trust in an optimization*. All
+three come back in Slice 2.
