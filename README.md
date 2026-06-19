@@ -62,3 +62,9 @@ python viz.py                          # redraw the diagrams
 
 The code is small and meant to be read. `engine.py` is the game, `agents.py` is the three
 players, and the `experiments/` scripts produce every number above.
+
+## About
+
+This is part of working through Harvard's open [Machine Learning Systems](https://mlsysbook.ai)
+book by building its ideas instead of only reading them. It's the first in a series, with more
+reads and experiments to come.

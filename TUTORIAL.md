@@ -12,8 +12,10 @@ when is it worth it? On a tight clock, the cheap hand-coded player wins again. A
 let a player learn from its own games, with no strategy given to it at all, and watched it get
 good on its own.
 
-This is the whole story, with the code and the real numbers. You only need basic Python to
-follow along. Everything here is in the repo, and every picture is drawn from code.
+This whole project came out of reading Harvard's open book
+[Machine Learning Systems](https://mlsysbook.ai). I'm working through it by building the ideas,
+not just reading them, and this is the first one. You only need basic Python to follow along,
+everything is in the repo, and every picture is drawn from code.
 
 ---
 
@@ -416,3 +418,11 @@ Two more from the same family. We didn't need them on a laptop, but they run the
   the equation that decides whether you can afford it.
 
 That's the bridge from a board game on a laptop to why a data center is shaped the way it is.
+
+---
+
+## What's next
+
+This is the first in a series. I'm working through the rest of
+[Machine Learning Systems](https://mlsysbook.ai) the same way: one idea at a time, built small
+enough to see and measured instead of taken on faith. More reads and experiments are on the way.
