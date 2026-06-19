@@ -46,8 +46,6 @@ matters once you leave the textbook: thinking costs time and energy, so when is 
 | `tests/` | Checks the engine and bitboard agree, and the network learns. |
 | `figures/` | Generated charts and diagrams. |
 | `TUTORIAL.md` | The full illustrated walkthrough (start here). |
-| `BLOG.md` | The raw build log: what I built, learned, and got surprised by. |
-| `PLAN.md` | The step-by-step plan for the project. |
 
 ## Run it yourself
 

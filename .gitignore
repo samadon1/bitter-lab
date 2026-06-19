@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 /*.png
+
+# private working notes, not for the public repo
+BLOG.md
+PLAN.md
