@@ -1,8 +1,9 @@
 # Watch a computer learn Connect Four
 
 I kept reading about "the bitter lesson" in AI. It's the idea that general methods which
-use more computation beat methods where people hand-code their knowledge. I wanted to feel
-that, not just nod at it. So I built it on the smallest game I could think of: Connect Four.
+use more computation beat methods where people hand-code their knowledge. I didn't want to just
+take their word for it. I wanted to build it and check. So I built it on the smallest game I
+could think of: Connect Four.
 
 One player knows good moves. The other knows only the rules and just thinks. I turned up how
 hard the second one is allowed to think, and watched it overtake the first. Then I asked the
