@@ -7,7 +7,7 @@ could think of: Connect Four.
 
 One player knows good moves. The other knows only the rules and just thinks. I turned up how
 hard the second one is allowed to think, and watched it overtake the first. Then I asked the
-question that actually matters once you leave the textbook: thinking costs time and energy, so
+question that matters once you leave the textbook: thinking costs time and energy, so
 when is it worth it? On a tight clock, the cheap hand-coded player wins again. And finally I
 let a player learn from its own games, with no strategy given to it at all, and watched it get
 good on its own.
@@ -121,14 +121,14 @@ opens up 7 replies, and each of those opens up 7 more. The number of futures exp
 ![A tree showing 1 position now, 7 after one move, 49 after two, exploding from there](figures/futures.png)
 
 After ten moves there are hundreds of millions of positions. You cannot check them all. So the
-thinker cheats, in a clever way.
+thinker cheats.
 
 To judge a move, it picks that move and then **finishes the game with random moves for both
 sides**, all the way to the end, and sees who won. One random game tells you almost nothing.
 But play a few hundred from the same starting move, and a pattern shows up: good moves win
 their random games more often than bad ones. The thinker just counts.
 
-It spends its budget cleverly, too. Instead of giving every move the same number of random
+It's also careful about where it spends those games. Instead of giving every move the same number of random
 games, it keeps a small tree of what it has tried and spends more games on the moves that look
 promising, while still occasionally checking the ones it has ignored. One round of this has
 four steps:
@@ -223,9 +223,8 @@ simulations versus 64, 64 versus 128, and so on, measuring how much skill each d
 
 Each doubling adds less than the one before, until it adds nothing at all: going from 512 to
 1024 simulations wins exactly half its games. It flatlines. (This curve is the return on
-compute, and the formula with these exact numbers is in the appendix.) The reason is kind of
-beautiful.
-Random play-outs are a weak, noisy signal, and past a point, more of them stops sharpening the
+compute, and the formula with these exact numbers is in the appendix.) Why? Random play-outs
+are a weak, noisy signal, and past a point, more of them stops sharpening the
 estimate. More play-outs can average out the luck, but they can't make each individual guess
 any smarter. To improve, the play-outs themselves have to get better. (Hold that thought. It's
 the whole reason for the last section.)
@@ -243,8 +242,8 @@ now the thinker has time to think, and it takes over.
 Same two players. Opposite winners. The only thing that changed is the compute budget. This is
 the real shape of the trade. Scale wins when you can afford it. When you can't, on a tiny device
 or under a tight deadline, cheap knowledge is the right call. A "better" method that you can't
-afford to run is not better. And making your code faster (that 2.6x) doesn't just save time, it
-moves this flip earlier, so scale wins on a tighter budget than before.
+afford to run is not better. And making your code faster (that 2.6x) shifts that flip earlier:
+the same speedup lets scale start winning on a tighter budget than before.
 
 ---
 
@@ -268,8 +267,8 @@ AlphaZero, shrunk to fit a laptop.
 > but plugged into the search it *lost* to plain random play-outs. Confusing. So I ran one
 > check: I fed the search a known-good judgment of positions (the expert's own scoring) instead
 > of the network. That version beat random play-outs in about 82% of games at equal thinking (49 of 60).
-> So the machinery was fine. The network just wasn't good enough yet. The fix was not cleverness.
-> It was scale: more self-play games, and more thinking per move to get cleaner labels. Random
+> So the machinery was fine. The network just wasn't good enough yet. The fix was just more
+> scale: more self-play games, and more thinking per move to get cleaner labels. Random
 > play-outs turned out to be a surprisingly strong baseline, and beating them took real volume.
 
 With enough self-play games, here's the learning curve. I measured the learner against the
@@ -296,8 +295,8 @@ engineering instead of a slogan:
   less. There's a flatline.
 - Compute costs time and energy, so the right amount of it depends on your budget. On a tight
   clock, cheap knowledge wins. A better method you can't afford to run isn't better.
-- Making compute cheaper (the bitboard) doesn't retire the question, it shifts it. You spend
-  the savings on more scale.
+- Cheaper compute (the bitboard) just raises the ceiling. You spend the savings on more
+  scale.
 - And learning is itself bound by scale. A learned signal can beat a hand-built one, but only
   with enough data and compute to get good. Below that, a strong simple baseline wins.
 
@@ -339,10 +338,9 @@ the machine-learning-systems world uses on real models. We just got to see them 
 The time to run any machine-learning task splits into three parts: moving data, doing the math,
 and a fixed tax.
 
-```
-T  ≈  Data / Bandwidth   +   Ops / (Peak × η)   +   Overhead
-      move the bytes          do the arithmetic     the fixed cost
-```
+$$
+T \;\approx\; \underbrace{\frac{\text{Data}}{\text{Bandwidth}}}_{\text{move the bytes}} \;+\; \underbrace{\frac{\text{Ops}}{\text{Peak} \times \eta}}_{\text{do the arithmetic}} \;+\; \underbrace{\text{Overhead}}_{\text{fixed cost}}
+$$
 
 - `Data` is the bytes you move, `Bandwidth` is how fast you can move them.
 - `Ops` is the number of arithmetic operations, `Peak` is the chip's top speed, and `η` (eta)
@@ -367,20 +365,20 @@ operations.
 Every extra bit of computing power buys you some extra skill. Return on compute is just
 skill-gained divided by compute-added.
 
-```
-return on compute  =  Δ skill  /  Δ compute
-```
+$$
+\text{return on compute} \;=\; \frac{\Delta\,\text{skill}}{\Delta\,\text{compute}}
+$$
 
 Our ladder measured exactly this, with skill in Elo and compute as the number of simulations.
 Each row is one doubling:
 
-```
-   32 → 64      +120 Elo
-   64 → 128     +280
-  128 → 256      +83
-  256 → 512      +23
-  512 → 1024      +0
-```
+| doubling the simulations | Elo gained |
+|---|---|
+| 32 → 64 | +120 |
+| 64 → 128 | +280 |
+| 128 → 256 | +83 |
+| 256 → 512 | +23 |
+| 512 → 1024 | +0 |
 
 The return shrinks toward zero. By the last doubling you pay twice the compute and get nothing
 back. That number is what tells you when to stop scaling, and it's the quiet warning sitting
@@ -390,17 +388,17 @@ inside the bitter lesson.
 
 If you know two players' ratings, Elo predicts how often the stronger one wins.
 
-```
-expected score for A  =  1 / (1 + 10^((R_b − R_a) / 400))
-```
+$$
+E_A \;=\; \frac{1}{1 + 10^{\,(R_B - R_A)/400}}
+$$
 
 A 400-point gap means the favorite wins about 90% of the time. We also needed the reverse:
 given an observed win rate, what rating gap does it imply? That's the same formula turned
 around.
 
-```
-rating gap  =  400 × log10( p / (1 − p) )
-```
+$$
+\text{rating gap} \;=\; 400 \cdot \log_{10}\!\left(\frac{p}{1 - p}\right)
+$$
 
 Here `p` is the win rate. A 50% win rate gives a gap of 0 (evenly matched), and 60% gives about
 +70. This is the function in `elo.py` that turned every match result into the numbers on every
@@ -411,10 +409,10 @@ chart.
 Two more from the same family. We didn't need them on a laptop, but they run the real world.
 
 - **Energy** looks like the iron law, but for joules instead of seconds:
-  `E ≈ Data × (energy per byte) + Ops × (energy per op)`. In big models the data-movement term
+  $E \approx \text{Data} \times (\text{energy per byte}) + \text{Ops} \times (\text{energy per op})$. In big models the data-movement term
   dominates, which is why shuffling weights around, not the arithmetic, burns most of the power.
 - The thing systems engineers actually optimize is **skill per dollar**, roughly
-  `(model size × data size) / hardware efficiency`. The bitter lesson says scale wins. This is
+  $\dfrac{\text{model size} \times \text{data size}}{\text{hardware efficiency}}$. The bitter lesson says scale wins. This is
   the equation that decides whether you can afford it.
 
 That's the bridge from a board game on a laptop to why a data center is shaped the way it is.
