@@ -13,8 +13,8 @@ let a player learn from its own games, with no strategy given to it at all, and 
 good on its own.
 
 This whole project came out of reading Harvard's open book
-[Machine Learning Systems](https://mlsysbook.ai). I'm working through it by building the ideas,
-not just reading them, and this is the first one. You only need basic Python to follow along,
+[Machine Learning Systems](https://mlsysbook.ai). I'm going through it one idea at a time, and
+this is the first. You only need basic Python to follow along,
 everything is in the repo, and every picture is drawn from code.
 
 ---

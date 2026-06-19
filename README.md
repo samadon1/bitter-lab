@@ -66,5 +66,5 @@ players, and the `experiments/` scripts produce every number above.
 ## About
 
 This is part of working through Harvard's open [Machine Learning Systems](https://mlsysbook.ai)
-book by building its ideas instead of only reading them. It's the first in a series, with more
-reads and experiments to come.
+book, one experiment at a time. It's the first in a series, with more reads and experiments to
+come.
