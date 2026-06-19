@@ -94,7 +94,7 @@ def plot(data: dict) -> None:
     ax.legend()
     ax.grid(True, which="both", alpha=0.3)
     fig.tight_layout()
-    out = os.path.join(REPO, "crossover.png")
+    out = os.path.join(REPO, "figures", "crossover.png")
     fig.savefig(out, dpi=130)
     print(f"\nsaved plot -> {out}")
 

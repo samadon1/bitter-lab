@@ -141,7 +141,7 @@ def _plot(curve):
     ax.legend()
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
-    fig.savefig(os.path.join(REPO, "selfplay_curve.png"), dpi=130)
+    fig.savefig(os.path.join(REPO, "figures", "selfplay_curve.png"), dpi=130)
 
 
 if __name__ == "__main__":

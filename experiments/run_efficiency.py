@@ -170,7 +170,7 @@ def _plot_ladder(lad):
     ax.set_title("Diminishing returns: each doubling of thinking adds less")
     ax.grid(True, which="both", alpha=0.3)
     fig.tight_layout()
-    fig.savefig(os.path.join(REPO, "efficiency_ladder.png"), dpi=130)
+    fig.savefig(os.path.join(REPO, "figures", "efficiency_ladder.png"), dpi=130)
 
 
 def _plot_flip(flip, flip_ms):
@@ -188,7 +188,7 @@ def _plot_flip(flip, flip_ms):
     ax.legend()
     ax.grid(True, which="both", alpha=0.3)
     fig.tight_layout()
-    fig.savefig(os.path.join(REPO, "efficiency_budget.png"), dpi=130)
+    fig.savefig(os.path.join(REPO, "figures", "efficiency_budget.png"), dpi=130)
 
 
 if __name__ == "__main__":
