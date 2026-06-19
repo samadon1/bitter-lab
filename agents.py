@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import math
 import random
+import time
 
 from engine import COLS, GameState, has_won
 
@@ -182,21 +183,44 @@ class MCTSAgent:
     more repeats. That number of repeats is the "compute" we turn up.
     """
 
-    def __init__(self, simulations: int, c: float = math.sqrt(2),
+    def __init__(self, simulations: int = 0, c: float = math.sqrt(2),
+                 time_budget: float | None = None,
                  seed: int | None = None, name: str | None = None):
-        self.simulations = simulations  # how many times we think before moving
+        # Set EITHER a fixed number of simulations, OR a time budget (seconds)
+        # to think as much as fits in that time. Time budget is for Slice 2's
+        # "put both players on a clock" experiment.
+        self.simulations = simulations
+        self.time_budget = time_budget
         self.c = c                       # how much to favour unexplored moves
         self.rng = random.Random(seed)
-        self.name = name or f"mcts-{simulations}"
+        self.last_sims = 0               # how many sims the last move actually ran
+        if name:
+            self.name = name
+        elif time_budget is not None:
+            self.name = f"mcts-{time_budget * 1000:.0f}ms"
+        else:
+            self.name = f"mcts-{simulations}"
 
     def select_move(self, state: GameState) -> int:
         root = _Node(state.clone(), parent=None, move=None)
 
-        for _ in range(self.simulations):
-            node = self._select(root)        # 1. walk down
-            node = self._expand(node)        # 2. try a new move
+        def one_simulation():
+            node = self._select(root)            # 1. walk down
+            node = self._expand(node)            # 2. try a new move
             winner = self._simulate(node.state)  # 3. play out randomly
-            self._backprop(node, winner)     # 4. walk back, update scores
+            self._backprop(node, winner)         # 4. walk back, update scores
+
+        if self.time_budget is not None:
+            end = time.perf_counter() + self.time_budget
+            n = 0
+            while time.perf_counter() < end:
+                one_simulation()
+                n += 1
+            self.last_sims = n
+        else:
+            for _ in range(self.simulations):
+                one_simulation()
+            self.last_sims = self.simulations
 
         # Play the move we explored most often.
         best = max(root.children, key=lambda ch: ch.visits)

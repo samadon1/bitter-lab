@@ -1,0 +1,77 @@
+{
+  "playout_speed": {
+    "array": 6144.602309039814,
+    "bitboard": 16787.523539453225,
+    "speedup": 2.7320764949679104
+  },
+  "mcts_speed": {
+    "array": 6539.910468659613,
+    "bitboard": 17222.710101286615,
+    "speedup": 2.633477963317821
+  },
+  "ladder": [
+    {
+      "weak": 32,
+      "strong": 64,
+      "winrate_strong": 0.6666666666666666,
+      "elo_gain": 120.41199826559246
+    },
+    {
+      "weak": 64,
+      "strong": 128,
+      "winrate_strong": 0.8333333333333334,
+      "elo_gain": 279.5880017344076
+    },
+    {
+      "weak": 128,
+      "strong": 256,
+      "winrate_strong": 0.6166666666666667,
+      "elo_gain": 82.58955521976088
+    },
+    {
+      "weak": 256,
+      "strong": 512,
+      "winrate_strong": 0.5333333333333333,
+      "elo_gain": 23.196778791074692
+    },
+    {
+      "weak": 512,
+      "strong": 1024,
+      "winrate_strong": 0.5,
+      "elo_gain": 0.0
+    }
+  ],
+  "budget_flip": [
+    {
+      "budget_ms": 5.0,
+      "approx_sims": 33,
+      "mcts_winrate": 0.16
+    },
+    {
+      "budget_ms": 10.0,
+      "approx_sims": 65,
+      "mcts_winrate": 0.18
+    },
+    {
+      "budget_ms": 20.0,
+      "approx_sims": 131,
+      "mcts_winrate": 0.56
+    },
+    {
+      "budget_ms": 40.0,
+      "approx_sims": 262,
+      "mcts_winrate": 0.71
+    },
+    {
+      "budget_ms": 80.0,
+      "approx_sims": 523,
+      "mcts_winrate": 0.86
+    }
+  ],
+  "flip_ms": 20.0,
+  "paradox": {
+    "sims_in_10ms_array": 65.39910468659613,
+    "sims_in_10ms_bitboard": 172.22710101286614,
+    "extra_thinking_factor": 2.633477963317821
+  }
+}

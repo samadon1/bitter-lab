@@ -261,3 +261,75 @@ then ask whether the strength was worth the price (Return on Compute), and what 
 I cap the clock (the budget flip).
 
 **Artifacts:** `data/crossover.json`, `crossover.png`. Crossover ≈ 256 simulations.
+
+---
+
+## 2026-06-19 — Slice 2: thinking isn't free
+
+**Goal:** Slice 1 proved more thinking wins. This slice asks the real-world follow-up: what
+does that thinking *cost*, and when is it worth it? Four measurements.
+
+**1) Where does the time go? (measure before optimizing.)** Profiled one MCTS move. Almost all
+the time is inside the engine: the win-check (`_run`, `_completes_win`), `is_full`,
+`legal_moves`, `play`. No surprise data-loading or overhead — it's pure per-position work. So
+the thing to make cheaper is the board itself. That's the diagnostic habit: don't guess where
+the cost is, look first, then optimize the part that actually dominates.
+
+**2) The bitboard — make each unit of thinking cheaper.** Rewrote the board as two integers
+with bit-shift win detection (`bitboard.py`), kept the exact same interface so the agents
+didn't change. Validated it against the plain engine by playing 300 identical random games and
+checking every step agrees — the "trust the fast version against the simple one" pattern,
+exactly as promised in Slice 0. Result: **~2.6× faster**, both on raw random playouts and on
+MCTS simulations per second. The win comes from cheap cloning (copy two numbers, not a 42-cell
+array) and shift-based win checks; pure-Python loop overhead is what keeps it from being more.
+
+**3) Diminishing returns — the ladder.** To see the bend honestly (Slice 1's curve saturated
+against the fixed heuristic), I laddered MCTS against *itself*: N sims vs 2N sims, so the
+opponent scales with me. Elo gained per doubling:
+
+```
+  64 vs   32   +120
+ 128 vs   64   +280
+ 256 vs  128   +83
+ 512 vs  256   +23
+1024 vs  512   +0     <- doubling stops helping
+```
+
+After the noisy low end it's a clean decline, all the way to a *plateau*: going 512→1024 wins
+exactly half its games, i.e. buys nothing. Interesting why: random rollouts are a weak signal,
+and past a point more of them doesn't sharpen the estimate. The cap isn't compute, it's the
+*quality* of each thought. (That's the door into Slice 3 — replacing random rollouts with a
+learned value would push the plateau out.) This is Return on Compute made literal: the same
+compute eventually returns zero, so "just scale it" has an end even here.
+
+**4) The budget flip — when cheap knowledge wins again.** Put both players on a per-move clock
+and varied the budget. MCTS win rate vs the instant 1-ply expert:
+
+```
+   5 ms (~33 sims)   0.16   expert wins
+  10 ms (~65 sims)   0.18   expert wins
+  20 ms (~131 sims)  0.56   thinker wins   <- the flip
+  40 ms (~262 sims)  0.71   thinker wins
+  80 ms (~523 sims)  0.86   thinker wins
+```
+
+Below ~20ms/move the cheap hand-coded expert wins; above it, the thinker takes over. Same two
+players, opposite outcomes — the deciding variable is the compute budget. This is the book's
+"a better algorithm is not automatically a better system": on a tight budget (think edge
+device, milliwatts) cheap knowledge is the right call; with compute to spare (cloud) scale
+wins. One board shows both halves.
+
+**5) The efficiency paradox.** The 2.6× faster board doesn't *save* time — you spend it on more
+thinking. At a 10ms budget the array board manages ~65 sims (loses); the bitboard would manage
+~170 (much closer to the flip). So the speedup doesn't bank a cheaper status quo, it shifts the
+flip leftward — efficiency lets scale win at a *tighter* budget. Efficiency enables scale;
+scale then demands more efficiency.
+
+**Self-test — when does scale win, when does cheap knowledge win, and what flips it?**
+The per-move compute budget flips it. Plenty of compute → thinking (scale) wins; tight compute
+→ cheap knowledge wins. And making compute more *efficient* moves the flip point, so the same
+hardware buys you into the winning regime sooner. Slice 1 was "scale wins." Slice 2 is "...but
+only if you can afford it, and affording it is an engineering problem."
+
+**Artifacts:** `data/efficiency.json`, `efficiency_ladder.png`, `efficiency_budget.png`.
+Bitboard ≈ 2.6× faster; budget flip ≈ 20 ms/move.

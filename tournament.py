@@ -12,9 +12,12 @@ import random
 from engine import GameState
 
 
-def play_game(player1, player2) -> int:
-    """Play one full game. player1 goes first. Returns the winner: 1, 2, or 0 (draw)."""
-    state = GameState()
+def play_game(player1, player2, make_state=GameState) -> int:
+    """Play one full game. player1 goes first. Returns the winner: 1, 2, or 0 (draw).
+
+    `make_state` lets us swap in the fast bitboard for MCTS-vs-MCTS games.
+    """
+    state = make_state()
     agents = {1: player1, 2: player2}
     while not state.is_terminal():
         move = agents[state.current_player].select_move(state)
@@ -29,7 +32,7 @@ def _reseed(agent, rng: random.Random) -> None:
         agent.rng.seed(rng.randrange(2**31))
 
 
-def match(agent_a, agent_b, n_games: int, rng: random.Random) -> dict:
+def match(agent_a, agent_b, n_games: int, rng: random.Random, make_state=GameState) -> dict:
     """Play n_games between A and B, swapping who starts each game.
 
     Counts are from A's point of view. A draw counts as half a win.
@@ -39,10 +42,10 @@ def match(agent_a, agent_b, n_games: int, rng: random.Random) -> dict:
         _reseed(agent_a, rng)
         _reseed(agent_b, rng)
         if i % 2 == 0:
-            winner = play_game(agent_a, agent_b)  # A starts
+            winner = play_game(agent_a, agent_b, make_state)  # A starts
             a_is = 1
         else:
-            winner = play_game(agent_b, agent_a)  # B starts
+            winner = play_game(agent_b, agent_a, make_state)  # B starts
             a_is = 2
         if winner == 0:
             draws += 1
