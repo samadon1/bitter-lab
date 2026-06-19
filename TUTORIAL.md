@@ -339,7 +339,7 @@ The time to run any machine-learning task splits into three parts: moving data, 
 and a fixed tax.
 
 $$
-T \;\approx\; \underbrace{\frac{\text{Data}}{\text{Bandwidth}}}_{\text{move the bytes}} \;+\; \underbrace{\frac{\text{Ops}}{\text{Peak} \times \eta}}_{\text{do the arithmetic}} \;+\; \underbrace{\text{Overhead}}_{\text{fixed cost}}
+T \approx \underbrace{\frac{\text{Data}}{\text{Bandwidth}}}_{\text{move the bytes}} + \underbrace{\frac{\text{Ops}}{\text{Peak} \times \eta}}_{\text{do the arithmetic}} + \underbrace{\text{Overhead}}_{\text{fixed cost}}
 $$
 
 - `Data` is the bytes you move, `Bandwidth` is how fast you can move them.
@@ -366,7 +366,7 @@ Every extra bit of computing power buys you some extra skill. Return on compute 
 skill-gained divided by compute-added.
 
 $$
-\text{return on compute} \;=\; \frac{\Delta\,\text{skill}}{\Delta\,\text{compute}}
+\text{return on compute} = \frac{\Delta \text{skill}}{\Delta \text{compute}}
 $$
 
 Our ladder measured exactly this, with skill in Elo and compute as the number of simulations.
@@ -389,7 +389,7 @@ inside the bitter lesson.
 If you know two players' ratings, Elo predicts how often the stronger one wins.
 
 $$
-E_A \;=\; \frac{1}{1 + 10^{\,(R_B - R_A)/400}}
+E_A = \frac{1}{1 + 10^{(R_B - R_A)/400}}
 $$
 
 A 400-point gap means the favorite wins about 90% of the time. We also needed the reverse:
@@ -397,7 +397,7 @@ given an observed win rate, what rating gap does it imply? That's the same formu
 around.
 
 $$
-\text{rating gap} \;=\; 400 \cdot \log_{10}\!\left(\frac{p}{1 - p}\right)
+\text{rating gap} = 400 \cdot \log_{10}\left(\frac{p}{1 - p}\right)
 $$
 
 Here `p` is the win rate. A 50% win rate gives a gap of 0 (evenly matched), and 60% gives about
