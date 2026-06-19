@@ -52,8 +52,8 @@ That's the whole game. A child learns it in a minute. I picked it for three reas
 - It's small. At most 7 moves are possible per turn, so a computer can explore the choices on
   a laptop.
 - It's solved. Back in 1988 it was proven that the first player can always win with perfect
-  play, and the best opening is the center column. So when my expert "prefers the center," it
-  isn't a cheap trick, it's the actual best move. The expert is genuinely strong.
+  play, and the best opening is the center column. So when my expert "prefers the center," that's
+  not a cheap trick. The center really is the best opening move. The expert is genuinely strong.
 - There's no luck and nothing hidden. Both players see everything. So when one player beats
   another, it's about decisions, not dice.
 
@@ -144,7 +144,7 @@ play(most_visited_move(root))
 ```
 
 The only knob is `simulations`: how many times it runs that loop before moving. That number is
-the "thinking." It's also, very concretely, the amount of computation. Nothing about Connect
+the "thinking." It's also, literally, the amount of computation it does. Nothing about Connect
 Four strategy is in here. Strength comes only from doing more loops.
 
 > 🤔 **What surprised me.** Getting the bookkeeping right was the whole battle. Each spot in the
@@ -168,7 +168,7 @@ At 8 simulations the thinker loses every single game. At 64 it's still losing. S
 256 simulations it crosses the line and starts beating my hand-coded expert. By 1024 it wins
 almost every game.
 
-Read that again. The player that knows nothing about Connect Four beats the player full of my
+The player that knows nothing about Connect Four beats the player full of my
 carefully written knowledge, just by being allowed to think more. I didn't make the thinker
 smarter. I gave it more compute. That's the bitter lesson, on my laptop, in one curve.
 
@@ -219,8 +219,9 @@ simulations versus 64, 64 versus 128, and so on, measuring how much skill each d
 Each doubling adds less than the one before, until it adds nothing at all: going from 512 to
 1024 simulations wins exactly half its games. It flatlines. The reason is kind of beautiful.
 Random play-outs are a weak, noisy signal, and past a point, more of them stops sharpening the
-estimate. The limit isn't how much it thinks. It's how good each thought is. (Hold that
-thought. It's the whole reason for the last section.)
+estimate. More play-outs can average out the luck, but they can't make each individual guess
+any smarter. To improve, the play-outs themselves have to get better. (Hold that thought. It's
+the whole reason for the last section.)
 
 ### On a tight clock, the cheap expert wins again
 
@@ -259,7 +260,7 @@ AlphaZero, shrunk to fit a laptop.
 > 🤔 **What surprised me, twice.** My first runs were a mess. The network's predictions improved,
 > but plugged into the search it *lost* to plain random play-outs. Confusing. So I ran one
 > check: I fed the search a known-good judgment of positions (the expert's own scoring) instead
-> of the network. That version crushed random play-outs, 82 games out of 100 at equal thinking.
+> of the network. That version beat random play-outs in about 82% of games at equal thinking (49 of 60).
 > So the machinery was fine. The network just wasn't good enough yet. The fix was not cleverness.
 > It was scale: more self-play games, and more thinking per move to get cleaner labels. Random
 > play-outs turned out to be a surprisingly strong baseline, and beating them took real volume.
@@ -272,8 +273,8 @@ of the learned judgment, not extra compute.
 
 It starts below random play-outs (an untrained network is worse than coin-flips). Around a
 hundred games it catches up. By a few hundred it's winning two games out of three against the
-random-play-out player at equal thinking, and it beats my hand-coded expert too, using far less
-thinking than the expert needed to be matched earlier. It taught itself, from nothing but its
+random-play-out player at equal thinking. It beats my hand-coded expert too, with far fewer
+simulations than the random-play-out player needed just to draw level with that expert. It taught itself, from nothing but its
 own games, to be stronger per unit of compute than both the searcher and my knowledge.
 
 ---
@@ -295,8 +296,8 @@ engineering instead of a slogan:
 
 That tension, "scale wins, but only as far as you can pay for it," is the everyday reality of
 building machine-learning systems. It's also exactly why so much of the field is about
-efficiency: getting more skill per dollar, per watt, per millisecond. The bitter lesson tells
-you scale matters. The rest of the work is being able to afford it.
+efficiency: getting more skill out of each dollar and each watt of hardware. The bitter lesson
+tells you scale matters. The rest of the work is being able to afford it.
 
 ---
 
