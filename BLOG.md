@@ -180,3 +180,84 @@ the exact template for how I'll validate the Slice 2 bitboard against this array
 state at massive volume (iron-law overhead); the incremental win check is a locality
 optimization; and the two-checker pattern is *how you earn trust in an optimization*. All
 three come back in Slice 2.
+
+---
+
+## 2026-06-19 — Slice 1: two agents and the crossover (the keystone)
+
+**Goal:** put human knowledge and pure compute on the same board and find the point where
+compute wins. This is the whole project in one chart.
+
+**What I built:**
+
+- `agents.py` — three players. `RandomAgent` (no knowledge, no compute — the floor, and the
+  policy MCTS rolls out with). `HeuristicAgent` — human knowledge, ~1 ply only: take a win,
+  block a loss, else pick the move with the best positional score (center control + scoring
+  every length-4 window). `MCTSAgent` — pure compute: Monte Carlo Tree Search with *random*
+  rollouts, knowing only the rules, with one knob — simulations per move.
+- `tournament.py` — plays matches and, crucially, **alternates who moves first** every game.
+  Connect Four's first player has a real edge, so without alternating I'd be measuring
+  seating luck, not skill.
+- `elo.py` — turns win rate into an Elo gap. I anchor the heuristic at 0 and read each MCTS
+  config's strength as its rating relative to that. Crossover = where MCTS crosses 0.
+- `experiments/run_crossover.py` — sweeps sims = 1…1024, 80 games each, writes
+  `data/crossover.json` and `crossover.png`.
+
+**MCTS in four phases (what I actually learned building it):** every "simulation" is one
+loop of SELECT (descend the tree from the root, at each step picking the child with the best
+UCB1 score — a formula that balances "this move has done well" against "this move is
+under-explored"), EXPAND (add one new child for a move not yet tried), SIMULATE (from there,
+play *uniformly random* moves to the end of the game), and BACKPROPAGATE (push the win/loss
+back up the path, crediting each move). Do that `simulations` times, then play the
+most-*visited* child — visits are a calmer signal of what the search trusts than the raw
+average. The only knowledge in the whole thing is the rules. Strength comes entirely from
+doing more loops. That loop count *is* the compute axis of the bitter lesson.
+
+The single subtle part was bookkeeping the *perspective*: a node stores reward for the
+player who moved *into* it, so when UCB1 at a parent maximizes a child's mean, it's
+maximizing the parent-mover's own win rate. Get the sign wrong and the agent confidently
+plays the opponent's best move. (It passed the "MCTS-100 beats random 40–0" check, which is
+how I knew the signs were right.)
+
+**The result:**
+
+```
+sims    winrate   Elo vs heuristic
+   1       0.01      -759
+   8       0.00      -920   (loses every game)
+  64       0.28      -168
+ 128       0.36      -103
+ 256       0.61       +75   <- crossover: now beating the expert
+ 512       0.89      +359
+1024       0.94      +470
+```
+
+A knowledge-free searcher that loses *every* game at 8 simulations becomes a 94%-winrate
+monster at 1024, overtaking my genuinely-strong hand-coded expert somewhere around 256
+simulations. Nothing about Connect Four was taught to it — I just let it think more. That's
+the bitter lesson, on my laptop, in one curve.
+
+**Self-test — what is the "compute" on my x-axis, and why does each doubling buy less?**
+The x-axis is MCTS simulations per move: one unit = one full SELECT/EXPAND/SIMULATE/BACKPROP
+loop, ending in a random playout to the end of the game. Doubling it doubles the imagined
+futures the agent samples before committing. It buys less near the top (512→1024 added +111
+Elo vs the +284 from 256→512) because skill rises with the *log* of compute, not linearly —
+the honest, bitter shape of the lesson.
+
+**Honest caveat I hit (and it's a real lesson):** measuring Elo against a *single fixed
+opponent* saturates. Once MCTS wins ~94%, beating the heuristic harder barely moves the
+number — not because more compute stopped helping, but because I've run out of headroom
+against *this* yardstick. The clean way to see diminishing returns at the top is a *ladder*:
+MCTS-N vs MCTS-2N, so the opponent scales with you. I'm noting it here and will add the
+ladder in Slice 2 rather than overclaim the bend from one saturating curve. (Also why the
+1→8 region looks flat-then-noisy: those configs lose ~every game, so the win rate floors and
+the Elo clamps — same saturation, other end.)
+
+**The cost, which sets up Slice 2:** the 1024-sim config took ~65 s for 80 games, roughly
+0.8 s per move, almost all of it in `clone()` and random rollouts over the NumPy board. The
+agent is strong because it computes a lot — and right now each unit of compute is expensive.
+That's the perfect setup for the efficiency half: make each simulation cheaper (bitboard),
+then ask whether the strength was worth the price (Return on Compute), and what happens when
+I cap the clock (the budget flip).
+
+**Artifacts:** `data/crossover.json`, `crossover.png`. Crossover ≈ 256 simulations.
