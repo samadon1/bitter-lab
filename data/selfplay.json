@@ -1,0 +1,77 @@
+{
+  "config": {
+    "selfplay_sims": 120,
+    "eval_sims": 80,
+    "games_per_iter": 100,
+    "iters": 12,
+    "eval_games": 60,
+    "seed": 0
+  },
+  "curve": [
+    {
+      "games": 0,
+      "vs_random_mcts": 0.2,
+      "vs_heuristic": 0.06666666666666667
+    },
+    {
+      "games": 100,
+      "vs_random_mcts": 0.5166666666666667,
+      "vs_heuristic": null
+    },
+    {
+      "games": 200,
+      "vs_random_mcts": 0.475,
+      "vs_heuristic": null
+    },
+    {
+      "games": 300,
+      "vs_random_mcts": 0.6333333333333333,
+      "vs_heuristic": null
+    },
+    {
+      "games": 400,
+      "vs_random_mcts": 0.6916666666666667,
+      "vs_heuristic": null
+    },
+    {
+      "games": 500,
+      "vs_random_mcts": 0.5666666666666667,
+      "vs_heuristic": null
+    },
+    {
+      "games": 600,
+      "vs_random_mcts": 0.7166666666666667,
+      "vs_heuristic": null
+    },
+    {
+      "games": 700,
+      "vs_random_mcts": 0.65,
+      "vs_heuristic": null
+    },
+    {
+      "games": 800,
+      "vs_random_mcts": 0.7,
+      "vs_heuristic": null
+    },
+    {
+      "games": 900,
+      "vs_random_mcts": 0.6916666666666667,
+      "vs_heuristic": null
+    },
+    {
+      "games": 1000,
+      "vs_random_mcts": 0.6333333333333333,
+      "vs_heuristic": null
+    },
+    {
+      "games": 1100,
+      "vs_random_mcts": 0.6083333333333333,
+      "vs_heuristic": null
+    },
+    {
+      "games": 1200,
+      "vs_random_mcts": 0.6916666666666667,
+      "vs_heuristic": 0.6
+    }
+  ]
+}

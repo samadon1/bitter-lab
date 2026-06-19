@@ -184,31 +184,44 @@ class MCTSAgent:
     """
 
     def __init__(self, simulations: int = 0, c: float = math.sqrt(2),
-                 time_budget: float | None = None,
+                 time_budget: float | None = None, value_fn=None,
                  seed: int | None = None, name: str | None = None):
         # Set EITHER a fixed number of simulations, OR a time budget (seconds)
         # to think as much as fits in that time. Time budget is for Slice 2's
         # "put both players on a clock" experiment.
+        #
+        # value_fn (optional, Slice 3): a function state -> number in [-1, 1]
+        # saying how good the position looks for the player to move. If given,
+        # the leaf is scored by this instead of by a random play-out. If not
+        # given, the agent behaves exactly as in Slices 1 and 2.
         self.simulations = simulations
         self.time_budget = time_budget
+        self.value_fn = value_fn
         self.c = c                       # how much to favour unexplored moves
         self.rng = random.Random(seed)
         self.last_sims = 0               # how many sims the last move actually ran
         if name:
             self.name = name
+        elif value_fn is not None:
+            self.name = f"value-mcts-{simulations}"
         elif time_budget is not None:
             self.name = f"mcts-{time_budget * 1000:.0f}ms"
         else:
             self.name = f"mcts-{simulations}"
 
-    def select_move(self, state: GameState) -> int:
+    def _run_search(self, state: GameState) -> _Node:
+        """Do all the thinking and return the root of the search tree."""
         root = _Node(state.clone(), parent=None, move=None)
 
         def one_simulation():
             node = self._select(root)            # 1. walk down
             node = self._expand(node)            # 2. try a new move
-            winner = self._simulate(node.state)  # 3. play out randomly
-            self._backprop(node, winner)         # 4. walk back, update scores
+            if self.value_fn is None:
+                winner = self._simulate(node.state)  # 3a. play out randomly
+                self._backprop(node, winner)         # 4. walk back, update scores
+            else:
+                value = self._leaf_value(node.state)  # 3b. ask the net instead
+                self._backprop_value(node, value)     # 4. walk back, update scores
 
         if self.time_budget is not None:
             end = time.perf_counter() + self.time_budget
@@ -221,10 +234,23 @@ class MCTSAgent:
             for _ in range(self.simulations):
                 one_simulation()
             self.last_sims = self.simulations
+        return root
 
+    def select_move(self, state: GameState) -> int:
         # Play the move we explored most often.
-        best = max(root.children, key=lambda ch: ch.visits)
-        return best.move
+        root = self._run_search(state)
+        return max(root.children, key=lambda ch: ch.visits).move
+
+    def search_visits(self, state: GameState):
+        """Like select_move, but also return each move's visit count.
+
+        Self-play uses the visit counts to add some randomness (explore), instead
+        of always taking the single most-visited move.
+        """
+        root = self._run_search(state)
+        visits = [(ch.move, ch.visits) for ch in root.children]
+        best = max(root.children, key=lambda ch: ch.visits).move
+        return best, visits
 
     # 1. walk down to a position with an untried move
     def _select(self, node: _Node) -> _Node:
@@ -272,4 +298,30 @@ class MCTSAgent:
                 # credit the player who made the move into this node
                 mover = node.parent.state.current_player
                 node.value += _reward(winner, mover)
+            node = node.parent
+
+    # --- value-network versions of phases 3 and 4 (Slice 3) ---------------
+
+    # 3b. score a leaf with the net instead of a random play-out
+    def _leaf_value(self, state: GameState) -> float:
+        """Value in [-1, 1] for the player to move at this leaf.
+
+        If the game already ended here, the player to move has just lost (the
+        previous move won) or it's a draw - so the value is exact: -1 or 0.
+        """
+        if state.is_terminal():
+            return -1.0 if state.winner != 0 else 0.0
+        return self.value_fn(state)
+
+    # 4 (value version). The leaf's value is from the leaf mover's point of view;
+    # players alternate, so the sign flips for every other player up the path.
+    def _backprop_value(self, leaf: _Node, value: float) -> None:
+        leaf_player = leaf.state.current_player
+        node = leaf
+        while node is not None:
+            node.visits += 1
+            if node.move is not None:
+                mover = node.parent.state.current_player
+                signed = value if mover == leaf_player else -value
+                node.value += (signed + 1.0) / 2.0  # map [-1,1] -> [0,1] like rollouts
             node = node.parent

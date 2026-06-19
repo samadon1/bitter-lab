@@ -333,3 +333,80 @@ only if you can afford it, and affording it is an engineering problem."
 
 **Artifacts:** `data/efficiency.json`, `efficiency_ladder.png`, `efficiency_budget.png`.
 Bitboard ≈ 2.6× faster; budget flip ≈ 20 ms/move.
+
+---
+
+## 2026-06-19 — Slice 3: let it learn (self-play)
+
+**Goal:** Slice 2 found a plateau — more random rollouts stopped helping because each
+rollout is a weak, coin-flip signal. The fix Sutton would point at: don't hand the agent a
+better signal, let it *learn* one from its own games. So: replace the random rollout with a
+small value network trained purely on self-play outcomes, and watch strength grow with the
+number of training games. No strategy is ever programmed in — only the rules and the results
+of its own play.
+
+**What I built (all additive — Slices 1 and 2 untouched):**
+- `valuenet.py` — a tiny two-layer NumPy network (84 → 128 → 1, tanh output), backprop and
+  Adam by hand. It answers one question about a position: "how good is this for the player to
+  move?", from −1 to +1. I used NumPy, not a big library, on purpose: the net is called one
+  position at a time deep inside the search loop, and at batch-size-1 a heavyweight library's
+  per-call overhead would cost more than the maths. (That's the iron law again.)
+- `agents.py` — `MCTSAgent` gained an optional `value_fn`. With it, the leaf is scored by the
+  net instead of a random play-out. Without it, the old random-rollout agent is unchanged —
+  and it's exactly the baseline I measure against.
+- `selfplay.py` + `experiments/run_selfplay.py` — the agent plays itself, every position is
+  labelled by who eventually won, the net trains on those labels, and the better net makes
+  better games. Round and round.
+
+**The honest journey (this is the real lesson):**
+
+First runs were a mess. At ~600 self-play games and 80 sims, value-MCTS hovered around 0.35
+win rate vs random-rollout MCTS at equal sims — i.e. the trained net was *losing* to plain
+random play-outs, even though its prediction loss was clearly falling. Confusing: the net is
+learning to predict outcomes, but it's not helping the search?
+
+Rather than thrash, I ran one diagnostic: feed the search a *known-good* value (the Slice 1
+heuristic's own positional score, as an oracle) and see if the machinery can win at all.
+Result: oracle-value-MCTS beat random-MCTS **0.82** at equal 80 sims. So the plumbing was
+correct — a good value clearly lifts the plateau. The problem was purely that my net wasn't
+*accurate* enough yet. Random rollouts turn out to be a surprisingly strong baseline (a
+play-out averages over many real future positions), and a weak value can be worse than that.
+
+The fix was scale, which is the whole point. Bumping to 1200 self-play games, 120 sims for
+cleaner outcome labels, and a bigger net:
+
+```
+self-play games   vs random-MCTS (equal 80 sims)   vs expert
+        0 (raw)            0.20                        0.07
+      100                  0.52
+      400                  0.69
+      600                  0.72
+     1200                  0.69                        0.60
+```
+
+Now it works. The learned value starts *below* random rollouts (an untrained net is worse
+than coin-flips), climbs past them by ~100 games, and settles around 0.65–0.72 — it beats
+random rollouts at equal compute, lifting the Slice 2 plateau. And at 1200 games it beats the
+Slice 1 hand-coded expert 0.60, at only 80 sims — where random-rollout MCTS needed ~256 sims
+just to *tie* that expert. The agent taught itself, from nothing but its own games, to be
+stronger per-unit-compute than both the random searcher and the hand-coded human knowledge.
+
+**Self-test — why does the learning curve bend like the search curve, and where does the
+compute go?** It bends because skill again rises with the *log* of effort: the first hundred
+games take it from hopeless to even, and each later batch adds less (it flattens around 0.7).
+Same diminishing-returns shape as Slice 1's search curve, reached by a different road —
+*learning* instead of *searching*. The compute goes almost entirely into self-play game
+generation (each move is a full MCTS search, and each search does many net evaluations), which
+is why a faster board and a lean batch-1 net mattered. CPU only; ~7–11s per 100-game round.
+
+**The meta-lesson, and why it's the most faithful slice to Sutton.** Slice 1: scale of search
+beats knowledge. Slice 3: scale of *experience* beats both — but only at scale. The weak early
+runs weren't a bug; they were the bitter lesson pointing at *learning itself*. A learned
+component is only as good as its data and compute, and beating a strong baseline (random
+rollouts) took real volume. The honest negative result plus the oracle control taught more
+than a lucky clean win would have — including *why* full AlphaZero adds a policy head and
+trains on millions of games (the value-only, few-hundred-games version is genuinely fiddly,
+exactly as the plan warned).
+
+**Artifacts:** `data/selfplay.json`, `data/valuenet.npz`, `selfplay_curve.png`.
+Self-play value-MCTS ≈ 0.69 vs random-MCTS and 0.60 vs the expert at equal/low sims.
