@@ -21,17 +21,23 @@ everything else is measured against.
   detection, `clone()` for search.
 - `tests/test_engine.py` — 14 tests. All green.
 
-**What I learned:**
-- This engine is *Software 1.0*: explicit rules, deterministic, small input space.
-  That's the whole reason I can test it exhaustively. A trained model is Software 2.0 —
-  behavior compiled from data, input space too big to enumerate, so you can only sample
-  it. That's the book's "verification gap." My engine is the one piece of this project I
-  can actually *prove* correct, which makes it the honest control case: if a later agent
-  misbehaves, the bug isn't in here.
-- Small but real systems habit: I have two win-checkers. `is_win` (fast) only checks the
-  lines through the cell just played; `has_won` (slow) scans the whole board. The tests
-  use the obviously-correct slow one to validate the fast one. "Verify the optimized path
-  against the simple path" — that pattern is going to come back in Slice 2 with bitboards.
+**Self-test — why can I write exhaustive tests for this engine, but not for a trained model?**
+
+Because this engine is *Software 1.0* — explicit, deterministic logic over a small,
+enumerable input space. Same input always gives the same output, so a finite test suite
+can pin down its behavior completely. A learned model (Software 2.0) is the opposite: its
+behavior is "compiled" from data, the input space is astronomically large, and you can
+only ever *sample* it — that's the book's **verification gap**. This is exactly why the
+engine is the honest *control case* for the whole project: it's the one component I can
+prove correct, so when MCTS or a self-play net behaves weirdly later, I know the bug isn't
+here.
+
+**One concrete thing in the code worth noticing:** `is_win` during play only checks the
+four lines through the *just-played cell* (fast), while `has_won` does a full-board scan
+(obviously correct). The tests use the slow-but-clear one to verify the fast one — a small
+instance of "test the optimized path against the simple path" that recurs all through ML
+systems work. It comes back in Slice 2 when the bitboard replaces the array engine: same
+trick, validate fast against simple.
 
 **Surprise / gotcha:**
 - My first "full board with no winner" test board was hand-crafted with 2×2 colour blocks.
