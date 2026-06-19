@@ -1,8 +1,8 @@
-"""Exhaustive correctness tests for the Connect Four engine.
+"""Tests for the Connect Four engine.
 
-The point of Slice 0: because this is deterministic Software 1.0 with a small
-input space, we *can* pin down its behavior with tests. A learned model has no
-equivalent — that contrast is the lesson.
+The game always behaves the same way, so we can check its rules completely here.
+That's the point of testing this part hard: it's the one piece we can fully trust,
+which makes every later bug easier to track down.
 """
 
 import numpy as np

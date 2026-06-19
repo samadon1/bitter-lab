@@ -1,16 +1,16 @@
-"""Slice 1 experiment: the bitter-lesson crossover.
+"""The main experiment: where does "thinking" overtake "knowing"?
 
-Sweep MCTS simulation count (the compute knob) against the fixed HeuristicAgent
-(human knowledge). Convert each head-to-head win rate to Elo relative to the
-heuristic (anchored at 0). Plot Elo vs log2(sims).
+Let MCTS play the heuristic over and over, each time giving MCTS more thinking
+(more simulations per move). Turn each result into a skill number and plot it as
+MCTS thinks harder.
 
-Expect two things to be visible:
-  1) a CROSSOVER — MCTS climbs past 0 and starts beating the expert (bitter lesson);
-  2) a BEND      — each doubling of compute buys less Elo than the last (diminishing
-     returns / the honest shape of the lesson).
+Two things to watch for in the chart:
+  1) the CROSSOVER - the point where MCTS starts beating the expert;
+  2) the FLATTENING - near the top, each doubling of thinking helps less than the
+     last. Skill grows with the size of the effort, not in a straight line.
 
 Run:  python experiments/run_crossover.py
-Outputs: data/crossover.json  and  crossover.png
+Makes: data/crossover.json  and  crossover.png
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ from elo import elo_diff_from_winrate, games_to_resolve, winrate_standard_error 
 from tournament import match  # noqa: E402
 
 SIM_COUNTS = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
-N_GAMES = 80          # below the ideal ~500 for tight resolution; enough to see shape
+N_GAMES = 80          # fewer than ideal, but enough to see the shape (more = smoother)
 SEED = 12345
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
