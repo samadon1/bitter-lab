@@ -161,7 +161,7 @@ Four strategy is in here. Strength comes only from doing more loops.
 Now the experiment. I let the thinker play the expert many times, giving the thinker more
 simulations each round, and measured how often it won. I turned the win rate into a single
 skill number (the chess rating idea, Elo), with the expert fixed at zero. Above zero means the
-thinker is winning.
+thinker is winning. (The Elo formula is in the appendix.)
 
 ![Elo of the thinker vs the expert, rising from far below zero to far above as simulations increase, crossing zero around 256 simulations](figures/crossover.png)
 
@@ -186,6 +186,8 @@ the second half of this project measuring the cost.
 Before optimizing anything, I checked where the time actually went, by profiling one move of
 the thinker. Almost all of it was in the win check and finding legal moves, called hundreds of
 thousands of times. No surprises, no hidden waste. Good. Now I know what to make faster.
+(This is the iron law of ML systems at work. The formula, and why our game collapses to just
+one of its three terms, is in the appendix.)
 
 ### Make each thought cheaper
 
@@ -218,7 +220,9 @@ simulations versus 64, 64 versus 128, and so on, measuring how much skill each d
 ![Elo gained per doubling of simulations, rising then falling to zero by 1024 simulations](figures/efficiency_ladder.png)
 
 Each doubling adds less than the one before, until it adds nothing at all: going from 512 to
-1024 simulations wins exactly half its games. It flatlines. The reason is kind of beautiful.
+1024 simulations wins exactly half its games. It flatlines. (This curve is the return on
+compute, and the formula with these exact numbers is in the appendix.) The reason is kind of
+beautiful.
 Random play-outs are a weak, noisy signal, and past a point, more of them stops sharpening the
 estimate. More play-outs can average out the luck, but they can't make each individual guess
 any smarter. To improve, the play-outs themselves have to get better. (Hold that thought. It's
@@ -319,3 +323,96 @@ python viz.py                          # redraw the diagrams
 
 The code is small and meant to be read: `engine.py` is the game, `agents.py` is the three
 players, and the `experiments/` scripts produce every number in this post.
+
+---
+
+## Appendix: the equations, and our numbers in them
+
+You don't need any of this to get the story. But each idea above has a real formula behind it,
+and it's satisfying to put our own measured numbers inside them. These are the same equations
+the machine-learning-systems world uses on real models. We just got to see them on a board game.
+
+### 1. The iron law (how long anything takes)
+
+The time to run any machine-learning task splits into three parts: moving data, doing the math,
+and a fixed tax.
+
+```
+T  ≈  Data / Bandwidth   +   Ops / (Peak × η)   +   Overhead
+      move the bytes          do the arithmetic     the fixed cost
+```
+
+- `Data` is the bytes you move, `Bandwidth` is how fast you can move them.
+- `Ops` is the number of arithmetic operations, `Peak` is the chip's top speed, and `η` (eta)
+  is how much of that top speed you actually reach.
+- `Overhead` is the fixed costs that don't shrink, like setup and scheduling.
+
+The formula matters less than the one question it forces you to ask: which term is the biggest?
+For Connect Four I profiled it, and the answer was clear. There's almost no data to move and
+almost no fixed overhead. Nearly all the time is arithmetic, in the win checks and move
+generation. So the whole thing collapses to the middle term, and the only way to go faster is
+to make that arithmetic cheaper. That's exactly what the bitboard did.
+
+Slice 3 flips it in a fun way. The value network is tiny: about 22,000 operations per call
+(84 by 128 in the first layer, 128 by 1 in the second). That math is nothing. But it gets
+called one position at a time, and one-at-a-time the fixed per-call cost (the `Overhead` term)
+is what dominates, not the arithmetic. That's the whole reason I wrote the network in plain
+NumPy instead of a big framework: when the math is tiny, you optimize the overhead, not the
+operations.
+
+### 2. Return on compute (is more worth it?)
+
+Every extra bit of computing power buys you some extra skill. Return on compute is just
+skill-gained divided by compute-added.
+
+```
+return on compute  =  Δ skill  /  Δ compute
+```
+
+Our ladder measured exactly this, with skill in Elo and compute as the number of simulations.
+Each row is one doubling:
+
+```
+   32 → 64      +120 Elo
+   64 → 128     +280
+  128 → 256      +83
+  256 → 512      +23
+  512 → 1024      +0
+```
+
+The return shrinks toward zero. By the last doubling you pay twice the compute and get nothing
+back. That number is what tells you when to stop scaling, and it's the quiet warning sitting
+inside the bitter lesson.
+
+### 3. Elo (turning wins into a skill number)
+
+If you know two players' ratings, Elo predicts how often the stronger one wins.
+
+```
+expected score for A  =  1 / (1 + 10^((R_b − R_a) / 400))
+```
+
+A 400-point gap means the favorite wins about 90% of the time. We also needed the reverse:
+given an observed win rate, what rating gap does it imply? That's the same formula turned
+around.
+
+```
+rating gap  =  400 × log10( p / (1 − p) )
+```
+
+Here `p` is the win rate. A 50% win rate gives a gap of 0 (evenly matched), and 60% gives about
++70. This is the function in `elo.py` that turned every match result into the numbers on every
+chart.
+
+### Where this goes at full scale
+
+Two more from the same family. We didn't need them on a laptop, but they run the real world.
+
+- **Energy** looks like the iron law, but for joules instead of seconds:
+  `E ≈ Data × (energy per byte) + Ops × (energy per op)`. In big models the data-movement term
+  dominates, which is why shuffling weights around, not the arithmetic, burns most of the power.
+- The thing systems engineers actually optimize is **skill per dollar**, roughly
+  `(model size × data size) / hardware efficiency`. The bitter lesson says scale wins. This is
+  the equation that decides whether you can afford it.
+
+That's the bridge from a board game on a laptop to why a data center is shaped the way it is.
