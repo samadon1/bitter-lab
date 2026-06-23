@@ -3,9 +3,6 @@
 A small Connect Four project for learning how machine-learning systems really work, by
 building one and measuring it.
 
-**Read the full walkthrough: [TUTORIAL.md](TUTORIAL.md).** It's plain, illustrated, and
-written for anyone with basic Python. This README is just the quick tour.
-
 
 ## The idea
 
@@ -46,7 +43,6 @@ matters once you leave the textbook: thinking costs time and energy, so when is 
 | `experiments/run_selfplay.py` | Learning from self-play. |
 | `tests/` | Checks the engine and bitboard agree, and the network learns. |
 | `figures/` | Generated charts and diagrams. |
-| `TUTORIAL.md` | The full illustrated walkthrough (start here). |
 
 ## Run it yourself
 
