@@ -6,6 +6,7 @@ building one and measuring it.
 **Read the full walkthrough: [TUTORIAL.md](TUTORIAL.md).** It's plain, illustrated, and
 written for anyone with basic Python. This README is just the quick tour.
 
+
 ## The idea
 
 There are two ways to make a computer good at a game. You can teach it good moves by hand (call
