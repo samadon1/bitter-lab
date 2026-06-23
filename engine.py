@@ -10,6 +10,7 @@ The board:
   - 0 = empty cell, 1 = player one, 2 = player two
 """
 
+
 from __future__ import annotations
 
 import numpy as np
